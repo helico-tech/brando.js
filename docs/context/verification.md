@@ -18,3 +18,5 @@ Review caught two regressions before release: unknown reminders could monopolize
 No claim is made that this suite certifies every Kotlin-specific acceptance criterion or the upstream performance suite. Exact adaptations and operational limitations are in [semantics](../domain/semantics.md) and [operations](../domain/operations.md).
 
 Evidence: [before](dashboard-before.png), [desktop](dashboard-after.png), [mobile](dashboard-mobile.png).
+
+GitHub Actions also passed the complete checks, browser flows and packed-consumer suite for implementation commit `0cd47a7`: [Verify run 35508440623](https://github.com/helico-tech/brando.js/actions/runs/35508440623).
