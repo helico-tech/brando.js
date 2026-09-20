@@ -57,6 +57,10 @@ console.log('Installed ESM consumer and all subpath exports passed.');`,
     `${directory}/consumer.ts`,
     `import { z } from 'zod';
 import { actorType, codec, defineActor, message, type Brando } from '@helico-tech/brando.js';
+import { actorTurnTest } from '@helico-tech/brando.js/testing';
+import { rateLimiter } from '@helico-tech/brando.js/primitives';
+import { createDashboardServer } from '@helico-tech/brando.js/http';
+export const subpaths = { actorTurnTest, rateLimiter, createDashboardServer };
 const type=actorType({name:'typed',id:codec('string',z.string())});
 const add=message({name:'add',payload:z.object({amount:z.number()}),result:codec('number',z.number())});
 export const actor=defineActor({type,state:codec('state',z.object({value:z.number()})),initial:()=>({value:0}),handlers:on=>[on(add,(ctx,p)=>ctx.update(s=>({value:s.value+p.amount})).value)]});
@@ -88,7 +92,29 @@ export async function use(runtime:Brando):Promise<number>{return runtime.call({t
     ],
     directory,
   );
-  console.log('Installed TypeScript consumer passed.');
+  run(
+    'pnpm',
+    [
+      'exec',
+      'tsc',
+      '--ignoreConfig',
+      '--noEmit',
+      '--strict',
+      '--esModuleInterop',
+      '--skipLibCheck',
+      '--module',
+      'commonjs',
+      '--moduleResolution',
+      'node',
+      '--ignoreDeprecations',
+      '6.0',
+      '--target',
+      'es2024',
+      'consumer.ts',
+    ],
+    directory,
+  );
+  console.log('Installed NodeNext and classic CommonJS TypeScript consumers passed.');
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }

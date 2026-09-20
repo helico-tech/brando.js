@@ -1,6 +1,6 @@
 {
   "name": "@helico-tech/brando.js",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Durable virtual actors for TypeScript and JavaScript, backed by PostgreSQL.",
   "type": "module",
   "license": "Apache-2.0",
@@ -85,5 +85,20 @@
     "typescript-eslint": "^8.70.0",
     "vite": "^8.3.0",
     "vitest": "^5.0.1"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "testing": [
+        "dist/testing.d.ts"
+      ],
+      "primitives": [
+        "dist/primitives.d.ts"
+      ],
+      "http": [
+        "dist/http.d.ts"
+      ]
+    }
   }
 }
