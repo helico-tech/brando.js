@@ -41,7 +41,7 @@ try {
     `${directory}/consumer.mjs`,
     `import assert from 'node:assert/strict';
 import { z } from 'zod';
-import { actorType, codec, defineActor, message } from '@helico-tech/brando.js';
+import { actorContract, actorType, codec, defineActor, message } from '@helico-tech/brando.js';
 import { actorTurnTest } from '@helico-tech/brando.js/testing';
 import { rateLimiter } from '@helico-tech/brando.js/primitives';
 import { createDashboardServer } from '@helico-tech/brando.js/http';
@@ -50,6 +50,7 @@ const add=message({name:'add',payload:z.object({amount:z.number()}),result:codec
 const actor=defineActor({type,state:codec('state',z.object({value:z.number()})),initial:()=>({value:0}),handlers:on=>[on(add,(ctx,p)=>ctx.update(s=>({value:s.value+p.amount})).value)]});
 const turn=await actorTurnTest({actors:[actor],actor,id:'a',message:add,payload:{amount:3}});
 assert.equal(turn.result,3);assert.equal(turn.state.value,3);assert.equal(typeof rateLimiter,'function');assert.equal(typeof createDashboardServer,'function');
+assert.equal(actorContract({type,state:actor.state,messages:[add]}).type,type);
 console.log('Installed ESM consumer and all subpath exports passed.');`,
   );
   writeFileSync(

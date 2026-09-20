@@ -1,5 +1,6 @@
 export {
   actorType,
+  actorContract,
   codec,
   defineActor,
   message,
@@ -21,6 +22,8 @@ export type {
   Json,
   Codec,
   ActorType,
+  ActorContract,
+  AnyActorContract,
   ActorRef,
   Message,
   HandlerScope,

@@ -12,9 +12,20 @@ import {
   StateIncompatible,
   WaitAborted,
   durableName,
+  contractRegistry,
   registry,
 } from './model.js';
-import type { ActorRef, AnyActor, Codec, Json, Message, Registration, Send } from './model.js';
+import type {
+  ActorRef,
+  AnyActor,
+  AnyActorContract,
+  Codec,
+  ContractRegistration,
+  Json,
+  Message,
+  Registration,
+  Send,
+} from './model.js';
 import { envelope, executeTurn } from './kernel.js';
 import { migrateSchema, schemaName } from './schema.js';
 import type { SchemaManagement } from './schema.js';
@@ -47,6 +58,7 @@ export interface BrandoOptions {
   name: string;
   database: string | Pool;
   actors: readonly AnyActor[];
+  contracts?: readonly AnyActorContract[];
   config?: BrandoConfiguration;
   onEvent?: (event: RuntimeEvent) => void;
 }
@@ -119,6 +131,7 @@ export class Brando {
   readonly owner = randomUUID();
   readonly config: Required<BrandoConfiguration>;
   private readonly registrations: Map<string, Registration>;
+  private readonly contracts: Map<string, ContractRegistration>;
   private readonly pool: Pool;
   private readonly ownsPool: boolean;
   private readonly store: Store;
@@ -150,13 +163,26 @@ export class Brando {
     )
       throw new RegistrationError('Unknown schema management mode');
     for (const [key, value] of Object.entries(this.config))
-      if (typeof value === 'number' && (!Number.isSafeInteger(value) || value <= 0))
-        throw new RegistrationError(`${key} must be a positive safe integer`);
+      if (
+        typeof value === 'number' &&
+        (!Number.isSafeInteger(value) || (key === 'workerCount' ? value < 0 : value <= 0))
+      )
+        throw new RegistrationError(
+          `${key} must be a ${key === 'workerCount' ? 'nonnegative' : 'positive'} safe integer`,
+        );
     if (this.config.leaseRenewalMs >= this.config.leaseDurationMs / 2)
       throw new RegistrationError('Lease renewal must be less than half the lease duration');
     if (this.config.workerCount > 256)
       throw new RegistrationError('workerCount must be at most 256');
     this.registrations = registry(options.actors);
+    this.contracts = contractRegistry({
+      registrations: this.registrations,
+      contracts: options.contracts ?? [],
+    });
+    if (!this.contracts.size)
+      throw new RegistrationError('Register at least one actor or contract');
+    if (this.config.workerCount > 0 && !this.registrations.size)
+      throw new RegistrationError('Executable actors are required when workerCount is positive');
     this.ownsPool = typeof options.database === 'string';
     this.pool =
       typeof options.database === 'string'
@@ -186,7 +212,7 @@ export class Brando {
       throw new DatabaseError(cause);
     }
     for (let i = 0; i < runtime.config.workerCount; i++) runtime.tasks.push(runtime.worker());
-    runtime.tasks.push(runtime.maintenance());
+    if (runtime.config.workerCount > 0) runtime.tasks.push(runtime.maintenance());
     return runtime;
   }
   private emit(event: RuntimeEvent) {
@@ -215,7 +241,7 @@ export class Brando {
       );
     let request;
     try {
-      request = envelope({ registrations: this.registrations, ...options });
+      request = envelope({ registrations: this.contracts, ...options });
     } catch (cause) {
       if (cause instanceof BrandoError) throw cause;
       throw new RegistrationError('Message or actor ID validation failed', { cause });
@@ -377,6 +403,7 @@ export class Brando {
             executeTurn({
               application: this.name,
               registrations: this.registrations,
+              contracts: this.contracts,
               actor: registration,
               actorId: claim.actor_id,
               invocationId: head.invocation_id,
@@ -476,13 +503,13 @@ export class Brando {
     };
   }
   catalogue() {
-    return [...this.registrations.values()].map((actor) => ({
+    return [...this.contracts.values()].map((actor) => ({
       name: actor.type.name,
       idType: actor.type.id.name,
       idSchema: actor.type.id.schema,
       stateType: actor.state.name,
       stateSchema: actor.state.schema,
-      messages: [...actor.handlers.values()].map(({ message }) => ({
+      messages: [...actor.messages.values()].map((message) => ({
         name: message.name,
         payloadSchema: message.payload.schema,
         resultType: message.result.name,
@@ -582,14 +609,14 @@ export class Brando {
     payload: Json;
     invocationId?: string;
   }): Promise<string> {
-    const actor = this.registrations.get(actorType);
-    const handler = actor?.handlers.get(messageType);
-    if (!actor || !handler) throw new RegistrationError('Unknown actor or message type');
+    const actor = this.contracts.get(actorType);
+    const message = actor?.messages.get(messageType);
+    if (!actor || !message) throw new RegistrationError('Unknown actor or message type');
     return (
       await this.submit({
         target: actor.type.ref(actor.type.id.decode(id)),
-        message: handler.message,
-        payload: handler.message.payload.decode(payload),
+        message,
+        payload: message.payload.decode(payload),
         invocationId,
       })
     ).id;

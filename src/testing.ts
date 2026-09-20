@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { registry } from './model.js';
-import type { ActorDefinition, AnyActor, Message } from './model.js';
+import { contractRegistry, registry } from './model.js';
+import type { ActorDefinition, AnyActor, AnyActorContract, Message } from './model.js';
 import { envelope, executeTurn } from './kernel.js';
 
 /** Executes the production turn kernel without claiming durability or scheduling. */
 export async function actorTurnTest<I, S, P, R>(options: {
   actors: readonly AnyActor[];
+  contracts?: readonly AnyActorContract[];
   actor: ActorDefinition<I, S>;
   id: I;
   state?: S;
@@ -26,6 +27,7 @@ export async function actorTurnTest<I, S, P, R>(options: {
     application: options.application ?? 'test',
     registrations,
     actor: options.actor.registration,
+    contracts: contractRegistry({ registrations, contracts: options.contracts ?? [] }),
     ...request,
     invocationId: options.invocationId ?? `test:${randomUUID()}`,
     incarnation: options.incarnation ?? '1',

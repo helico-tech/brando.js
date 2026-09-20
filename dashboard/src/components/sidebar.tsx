@@ -1,3 +1,4 @@
+import packageJson from '../../../package.json' with { type: 'json' };
 import type { View, Overview } from '../types.js';
 import { num } from '../lib/presentation.js';
 import {
@@ -115,7 +116,7 @@ export function Sidebar({
           <span className="avatar">B</span>
           <div>
             <strong>Brando console</strong>
-            <span>v0.1.0 · PostgreSQL</span>
+            <span>v{packageJson.version} · PostgreSQL</span>
           </div>
           <MoreHorizontal size={18} />
         </div>

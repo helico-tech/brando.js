@@ -37,3 +37,11 @@ A missing actor registration is left to compatible replicas. An unreadable state
 - Unknown fields on class-like objects are retained; arrays, dynamic maps and unions use replacement values, matching the reference kernel’s collection and sealed-root policy.
 
 Never run this port against a Kotlin Brando schema. Deploying two JavaScript replicas with the same application and schema shares one application; different application names isolate identities within that schema. Separate schemas isolate migrations.
+
+## Producer-only clients (BRANDOJS-0002)
+
+Outbound contracts and executable actors have separate registries. Only executable
+actor types are claimed; only their local handlers materialize reminders. A runtime
+with zero workers performs neither claim nor maintenance polling. Outbound sends
+use declared contracts while local reminders still require executable unit handlers.
+The database schema and atomic commit boundary are unchanged.

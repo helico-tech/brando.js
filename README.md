@@ -76,6 +76,51 @@ For JavaScript, remove the type annotation and the `!` assertion. Handlers retur
 
 The database may be a connection string or your own `pg.Pool`. Brando closes only pools it creates. A borrowed pool needs at least `workerCount + 3` connections and bounded connection/statement timeouts. Use `await using brando = await Brando.start(...)` for automatic disposal where supported.
 
+## Producers and worker profiles
+
+Available in the 0.2.0 source version; the release link above remains the published 0.1.0 package.
+
+Share wire contracts without importing handler implementations:
+
+```ts
+import { actorContract } from '@helico-tech/brando.js';
+
+const counters = actorContract({
+  type: Counters,
+  state: codec('counter.state.v1', z.object({ value: z.number() })),
+  messages: [Add],
+});
+const client = await Brando.start({
+  name: 'my-application',
+  database: process.env.DATABASE_URL!,
+  actors: [],
+  contracts: [counters],
+  config: { workerCount: 0 },
+});
+const accepted = await client.submit({
+  target: Counters.ref('homepage'),
+  message: Add,
+  payload: { amount: 10 },
+});
+await client.close();
+```
+
+Zero workers explicitly selects a producer/inspection client: it starts neither
+workers nor reminder/retention maintenance. Acceptance remains durable even with
+every worker offline. A worker using the same application and schema executes
+work when available. The client still opens a database pool, validates or
+applies the schema according to `schemaManagement`, and must be closed.
+
+Workers register only their executable `actors` and may additionally declare
+`contracts` for outbound submissions and transactional sends. Outbound contracts
+do not make an actor eligible for claims or reminder delivery. Actor definitions
+implicitly declare their own contracts, so existing applications need no changes.
+Share the same message objects between local handlers and their declared contracts;
+conflicting ID, state, or message declarations fail startup. Register the complete
+handler set for each actor type a worker owns; partial handlers of one actor type
+are not separate worker profiles. The state codec in a contract describes the wire
+schema, and does not provide initialization or execution behavior.
+
 ## Submit, disconnect, resume
 
 ```ts

@@ -10,3 +10,4 @@ playwright-report/
 coverage/
 *.tgz
 docs/context/.package-check/
+docs/context/producer-*.log

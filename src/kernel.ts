@@ -10,6 +10,7 @@ import {
 } from './model.js';
 import type {
   ActorRef,
+  ContractRegistration,
   Failure,
   HandlerScope,
   Json,
@@ -55,7 +56,7 @@ export function envelope<I, P, R>({
   message,
   payload,
 }: {
-  registrations: Map<string, Registration>;
+  registrations: Map<string, ContractRegistration>;
   target: ActorRef<I>;
   message: Message<P, R>;
   payload: P;
@@ -63,7 +64,7 @@ export function envelope<I, P, R>({
   const actor = registrations.get(target.type.name);
   if (!actor || actor.type.id.name !== target.type.id.name)
     throw new RegistrationError(`Unregistered actor identity ${target.type.name}`);
-  if (actor.handlers.get(message.name)?.message !== message)
+  if (actor.messages.get(message.name) !== message)
     throw new RegistrationError(`Unregistered message ${message.name} for ${target.type.name}`);
   const actorId = actor.type.id.encode(target.id);
   return {
@@ -90,6 +91,7 @@ export function failure(cause: unknown, category = 'application'): Failure {
 export async function executeTurn(options: {
   application: string;
   registrations: Map<string, Registration>;
+  contracts?: Map<string, ContractRegistration>;
   actor: Registration;
   actorId: Json;
   invocationId: string;
@@ -224,7 +226,7 @@ export async function executeTurn(options: {
       if (send.options.message.result !== unit)
         throw new BrandoError('Sends require a unit result');
       plannedSends.push({
-        ...envelope({ registrations: options.registrations, ...send.options }),
+        ...envelope({ registrations: options.contracts ?? options.registrations, ...send.options }),
         invocationId: send.invocationId,
       });
     }

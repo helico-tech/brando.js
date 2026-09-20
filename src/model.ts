@@ -232,11 +232,36 @@ export type On<I, S> = <P, R>(
   message: Message<P, R>,
   handle: (scope: HandlerScope<I, S>, payload: P) => R | Promise<R>,
 ) => HandlerRegistration;
-export interface Registration {
+export interface ContractRegistration {
   type: ActorType<unknown>;
+  state: Pick<Codec<unknown>, 'name' | 'schema'>;
+  messages: Map<string, Message<unknown, unknown>>;
+}
+export interface Registration extends ContractRegistration {
   state: Codec<unknown>;
   initial(id: unknown): unknown;
   handlers: Map<string, HandlerRegistration>;
+}
+export interface AnyActorContract {
+  readonly contract: ContractRegistration;
+}
+export interface ActorContract<I> extends AnyActorContract {
+  readonly type: ActorType<I>;
+}
+export function actorContract<I>(options: {
+  type: ActorType<I>;
+  state: Pick<Codec<unknown>, 'name' | 'schema'>;
+  messages: readonly Message<unknown, unknown>[];
+}): ActorContract<I> {
+  durableName(options.state.name);
+  const messages = new Map<string, Message<unknown, unknown>>();
+  for (const message of options.messages) {
+    if (messages.has(message.name))
+      throw new RegistrationError(`Duplicate message ${message.name}`);
+    messages.set(message.name, message);
+  }
+  if (!messages.size) throw new RegistrationError('A contract needs at least one message');
+  return { type: options.type, contract: { type: options.type, state: options.state, messages } };
 }
 export interface AnyActor {
   readonly registration: Registration;
@@ -270,6 +295,7 @@ export function defineActor<I, S>(options: {
       state: options.state,
       initial: (id) => options.initial(id as I),
       handlers,
+      messages: new Map([...handlers].map(([name, handler]) => [name, handler.message])),
     },
   };
 }
@@ -281,8 +307,37 @@ export function registry(actors: readonly AnyActor[]): Map<string, Registration>
       throw new RegistrationError(`Duplicate actor ${registration.type.name}`);
     registrations.set(registration.type.name, registration);
   }
-  if (!registrations.size) throw new RegistrationError('Register at least one actor');
   return registrations;
+}
+export function contractRegistry({
+  registrations,
+  contracts,
+}: {
+  registrations: Map<string, Registration>;
+  contracts: readonly AnyActorContract[];
+}): Map<string, ContractRegistration> {
+  const result = new Map<string, ContractRegistration>();
+  for (const next of [...registrations.values(), ...contracts.map((value) => value.contract)]) {
+    const current = result.get(next.type.name);
+    if (!current) {
+      result.set(next.type.name, { ...next, messages: new Map(next.messages) });
+      continue;
+    }
+    if (
+      current.type.id.name !== next.type.id.name ||
+      current.state.name !== next.state.name ||
+      canonical(json(current.type.id.schema)) !== canonical(json(next.type.id.schema)) ||
+      canonical(json(current.state.schema)) !== canonical(json(next.state.schema))
+    ) {
+      throw new RegistrationError(`Conflicting contract for ${next.type.name}`);
+    }
+    for (const [name, message] of next.messages) {
+      if (current.messages.has(name) && current.messages.get(name) !== message)
+        throw new RegistrationError(`Conflicting contract message ${name} for ${next.type.name}`);
+      current.messages.set(name, message);
+    }
+  }
+  return result;
 }
 export function idempotencyKey({
   application,
