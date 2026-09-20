@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - '127.0.0.1:55432:5432'
+    environment:
+      POSTGRES_USER: brando
+      POSTGRES_PASSWORD: brando
+      POSTGRES_DB: brando
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U brando']
+      interval: 2s
+      timeout: 2s
+      retries: 20
+volumes:
+  postgres-data:

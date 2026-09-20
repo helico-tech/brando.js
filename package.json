@@ -1,0 +1,89 @@
+{
+  "name": "@helico-tech/brando.js",
+  "version": "0.1.0",
+  "description": "Durable virtual actors for TypeScript and JavaScript, backed by PostgreSQL.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/helico-tech/brando.js.git"
+  },
+  "homepage": "https://github.com/helico-tech/brando.js#readme",
+  "bugs": "https://github.com/helico-tech/brando.js/issues",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    },
+    "./primitives": {
+      "types": "./dist/primitives.d.ts",
+      "default": "./dist/primitives.js"
+    },
+    "./http": {
+      "types": "./dist/http.d.ts",
+      "default": "./dist/http.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && vite build --config dashboard/vite.config.ts && node scripts/copy-licenses.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0 && node scripts/issues.mjs validate && node scripts/validate-repo.mjs",
+    "test": "vitest run",
+    "test:browser": "node scripts/browser-tests.mjs",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build",
+    "start": "tsx examples/server.ts",
+    "dashboard": "vite --config dashboard/vite.config.ts",
+    "issues": "node scripts/issues.mjs",
+    "prepack": "pnpm build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:package": "node scripts/package-check.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.23.0",
+    "zod": "^4.6.5",
+    "@types/pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@playwright/test": "^1.63.0",
+    "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-slot": "^1.3.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.13.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "eslint": "^10.11.0",
+    "lucide-react": "^1.47.0",
+    "prettier": "^3.9.8",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}

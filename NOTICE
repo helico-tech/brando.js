@@ -1,0 +1,6 @@
+brando.js
+Copyright 2026 helico-tech
+
+TypeScript implementation derived from the behavior and architecture of Brando
+(https://github.com/helico-tech/brando), licensed under Apache License 2.0.
+Includes shadcn/ui component source under the MIT license; see dashboard/LICENSE.

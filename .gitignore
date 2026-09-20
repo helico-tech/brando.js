@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.worktrees/
+.playwright-cli/
+test-results/
+playwright-report/
+coverage/
+*.tgz
+docs/context/.package-check/
